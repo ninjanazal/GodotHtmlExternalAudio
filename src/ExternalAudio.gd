@@ -50,17 +50,33 @@ func addPlayer (busName : String, playerName : String):
 	if(!IexternalAudio): return;
 
 	IexternalAudio.createPlayer(busName, playerName);
+	if(!has_user_signal(playerName)):
+		add_user_signal(playerName)
+
+
+#*
+# 
+#*
+func playAudio(playerName : String, audioResource : AudioStream, volume = 1.0):
+	if(!IexternalAudio): return;
+	if(audioResource.has_method("get_data")):
+		IexternalAudio.playOnPlayer(playerName,
+			audioResource.get_path().get_extension(),
+			Marshalls.raw_to_base64(audioResource.get_data()),
+			volume
+		);
+
+
 
 
 # - - - - - - - - - -
 # PRIVATE
 # - - - - - - - - - -
 
-
 #*
 # Function ready override
 #*
-func _ready():
+func _enter_tree():
 	if (OS.has_feature("JavaScript")):
 		var readerFile = File.new();
 
@@ -72,13 +88,11 @@ func _ready():
 			else:
 				print("[ExternalAudio] :: Failed to eval the defined files!");
 				return;
-		print("[ExternalAudio] :: Files evaluated correctly!");
+		print("[ExternalAudio] :: Files evaluated correctly!\n\t::: GHEA is ready to use.");
 
 
 	IexternalAudio = JavaScript.get_interface("externalAudio");
 	externalAudioCallback = JavaScript.create_callback(self, "__onend_callback__");
-
-
 
 
 #*
@@ -86,5 +100,5 @@ func _ready():
 # @param {String} playerName Ended player name
 #*
 func __onend_callback__(playerName : String):
-	if(has_signal(playerName)):
-		emit_signal(playerName);
+	if(has_user_signal(playerName)):
+		emit_signal( playerName);

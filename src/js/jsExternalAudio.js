@@ -38,10 +38,13 @@ jsExternalAudio.prototype.createPlayer = function (busname, playername) {
  * @param {Boolean} looping 
  * @param {Function} callback 
  */
-jsExternalAudio.prototype.playOnPlayer = function (playerName, busVolume, format, buffer, volume, looping = false, callback = undefined) {
+jsExternalAudio.prototype.playOnPlayer = function (playerName, format, buffer, volume, looping = false, callback = undefined) {
 	Object.values(this.extBuses).forEach((extBus) => {
 		if (playerName in extBus.extPlayers) {
-			extBus.extPlayers[playerName].play(busVolume, format, buffer, volume, looping, callback);
+			extBus.extPlayers[playerName].play(
+				extBus.busVolume,
+				format, buffer, volume, looping, callback
+			);
 		}
 	})
 }

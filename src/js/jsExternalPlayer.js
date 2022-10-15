@@ -31,6 +31,7 @@ jsExternalPlayer.prototype.play = function (busVolume, format, buffer, volume, l
 	}
 
 	this.volume = volume;
+	console.log(busVolume);
 
 	this.howlPlayer = new Howl({
 		src: [PREFIXHEADER + format + SUFIXHEADER + buffer],
@@ -46,7 +47,12 @@ jsExternalPlayer.prototype.play = function (busVolume, format, buffer, volume, l
 			if (callback !== undefined) { callback(this.name); }
 			this.howlPlayer.unload();
 			this.howlPlayer = undefined;
+		},
+		onload: () => {
+			this.howlPlayer.play();
+		},
+		onloaderror: (id, err) => {
+			console.log('failed to load sound file:', { id, err });
 		}
 	});
-	this.howlPlayer.play();
 }
