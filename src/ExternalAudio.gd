@@ -26,6 +26,16 @@ var IexternalAudio = null;
 #*
 var externalAudioCallback : JavaScriptObject = null
 
+#*
+# Holds reference to a visibility callback function
+#*
+var externalVisibilityCallback : JavaScriptObject = null;
+
+#*
+# Marks if focus should mute the audio
+#*
+var useFocusStateMute : bool = false;
+
 
 
 # - - - - - - - - - -
@@ -160,6 +170,8 @@ func _enter_tree():
 
 	IexternalAudio = JavaScript.get_interface("externalAudio");
 	externalAudioCallback = JavaScript.create_callback(self, "onEndCallback");
+	externalVisibilityCallback = JavaScript.create_callback(self, "onVisiblityChange");
+	IexternalAudio.createVisibleCallback(externalVisibilityCallback);
 
 #*
 # Callback function informing when a defined player ended
@@ -168,3 +180,24 @@ func _enter_tree():
 func onEndCallback(args):
 	if(has_user_signal(args[0])):
 		emit_signal(args[0]);
+
+
+#*
+# Use document visibility change to mute/resume audio
+#*
+func onVisiblityChange(arg):
+	if(!useFocusStateMute && arg[0]):
+		IexternalAudio.onFocusIn();
+	elif(!useFocusStateMute && !arg[0]):
+		IexternalAudio.onFocusOut();
+
+#*
+# Using focus to mute/Resume audio
+#*
+func _notification(what):
+	if(useFocusStateMute && what == NOTIFICATION_WM_FOCUS_IN):
+		if(!IexternalAudio): return;
+		IexternalAudio.onFocusIn();
+	elif (useFocusStateMute && what == NOTIFICATION_WM_FOCUS_OUT):
+		if(!IexternalAudio): return;
+		IexternalAudio.onFocusOut();

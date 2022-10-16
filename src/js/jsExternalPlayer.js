@@ -35,12 +35,25 @@ jsExternalPlayer.prototype.pause = function () {
 
 
 /**
- * Resumes the current player
+ * Resume the current player
  */
 jsExternalPlayer.prototype.resume = function () {
-	if (this.howlPlayer !== undefined) {
+	if(this.howlPlayer !== undefined){
 		this.howlPlayer.play();
 	}
+}
+
+/**
+ * Resumes the current player with a howler reload
+ */
+jsExternalPlayer.prototype.resumeReload = function (busVolume, busMute) {
+	if (this.howlPlayer !== undefined) {
+		this.howlPlayer.unload();
+	}
+	this.howlPlayer = undefined;
+	this.play(busVolume, busMute, 
+		this.__info.format, this.__info.buffer, this.volume,
+		this.__info.loop, this.__info.callback);
 }
 
 /**
@@ -69,7 +82,7 @@ jsExternalPlayer.prototype.mute = function (muted) {
  * @param {Number} volume Bus volume
  */
 jsExternalPlayer.prototype.changeVolume = function (volume) {
-	if(this.howlPlayer !== undefined){
+	if (this.howlPlayer !== undefined) {
 		this.howlPlayer.volume(this.volume * volume);
 	}
 }
@@ -104,13 +117,16 @@ jsExternalPlayer.prototype.play = function (
 		loop: looping,
 		mute: muted,
 		onplayerror: function () {
-			this.howlPlayer.once("unlock", function () {
+			console.log("[ExternalAudioJS] :: " + this.name + " play error, waiting to unlock");
+
+			this.howlPlayer.once("unlock", function () {	
 				this.howlPlayer.play();
 			})
 		},
 		onend: () => {
+			if (this.__info.loop) { return; }
+			console.log("[ExternalAudioJS] :: " + this.name + " has finished playing");
 			if (this.__info.callback !== undefined) { this.__info.callback(this.name); }
-			if (this.howlPlayer.loop) { return; }
 			this.howlPlayer.unload();
 			this._resetPlayerInfo();
 		},
@@ -119,7 +135,9 @@ jsExternalPlayer.prototype.play = function (
 			this.howlPlayer.play();
 		},
 		onloaderror: (id, err) => {
-			console.log('[ExternalAudioJS] :: Failed to load sound file: ', { id, err });
+			if (id !== null) {
+				console.log('[ExternalAudioJS] :: Failed to load sound file: ', { id, err });
+			}
 		},
 		onunlock: () => {
 			console.log("[ExternalAudioJS] :: " + this.name + " is unlock and ready to play");

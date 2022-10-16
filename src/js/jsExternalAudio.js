@@ -7,6 +7,16 @@ function jsExternalAudio() {
 
 
 /**
+ * Adds a callback to visiblitiy change event
+ * @param {Callback} callback Visibility callback function
+ */
+jsExternalAudio.prototype.createVisibleCallback = function (callback) {
+	document.addEventListener("visibilitychange", () => {
+		callback(document.visibilityState == "visible");
+	});
+}
+
+/**
  * Creates a new bus by name
  * @param {String} name New bus name 
  */
@@ -51,6 +61,26 @@ jsExternalAudio.prototype.playOnPlayer = function (playerName, format, buffer,
 }
 
 /**
+ * On Focus in, resume all the buses and players
+ */
+jsExternalAudio.prototype.onFocusIn = function () {
+	Howler.unload();
+	Object.values(this.extBuses).forEach((extBus) => {
+		extBus.onFocusIn();
+	});
+}
+
+/**
+ * On Focus out, pause all the buses and players
+ */
+jsExternalAudio.prototype.onFocusOut = function () {
+	Object.values(this.extBuses).forEach((extBus) => {
+		extBus.onFocusOut();
+	});
+}
+
+
+/**
  * Pauses a playing player by name
  * @param {String} playerName Target player name
  */
@@ -68,7 +98,7 @@ jsExternalAudio.prototype.pausePlayer = function (playerName) {
  */
 jsExternalAudio.prototype.resumePlayer = function (playerName) {
 	Object.values(this.extBuses).forEach((extBus) => {
-		if(playerName in extBus.extPlayers){
+		if (playerName in extBus.extPlayers) {
 			extBus.extPlayers[playerName].resume();
 		}
 	})
@@ -80,7 +110,7 @@ jsExternalAudio.prototype.resumePlayer = function (playerName) {
  * @param {Boolean} muted Mute State 
  */
 jsExternalAudio.prototype.muteBus = function (busName, muted) {
-	if(busName in this.extBuses){
+	if (busName in this.extBuses) {
 		this.extBuses[busName].mute(muted);
 	}
 }
@@ -92,7 +122,7 @@ jsExternalAudio.prototype.muteBus = function (busName, muted) {
  * @returns Target bus mute state
  */
 jsExternalAudio.prototype.isBusMuted = function (busName) {
-	if(busName in this.extBuses) {
+	if (busName in this.extBuses) {
 		return this.extBuses[busName].isMuted();
 	}
 	return false;
@@ -107,7 +137,7 @@ jsExternalAudio.prototype.isBusMuted = function (busName) {
 jsExternalAudio.prototype.isPlayerPaused = function (playerName) {
 	for (let i = 0; i < Object.values(this.extBuses).length; i++) {
 		const elem = Object.values(this.extBuses)[i];
-		if(playerName in elem.extPlayers) {
+		if (playerName in elem.extPlayers) {
 			return elem.extPlayers[playerName].isPaused();
 		}
 	}
@@ -122,7 +152,7 @@ jsExternalAudio.prototype.isPlayerPaused = function (playerName) {
  * @param {*} volume Target volume value
  */
 jsExternalAudio.prototype.changeBusVolume = function (busName, volume) {
-	if(busName in this.extBuses) {
+	if (busName in this.extBuses) {
 		this.extBuses[busName].changeVolume(volume);
 	}
 }
@@ -133,11 +163,12 @@ jsExternalAudio.prototype.changeBusVolume = function (busName, volume) {
  * @returns Bus volume, from 0.0 to 1.0
  */
 jsExternalAudio.prototype.getBusVolume = function (busName) {
-	if(busName in this.extBuses){
+	if (busName in this.extBuses) {
 		return this.extBuses[busName].getBusVolume();
 	}
 	return 0.0;
 }
+
 
 /**
  * ExternalAudio object

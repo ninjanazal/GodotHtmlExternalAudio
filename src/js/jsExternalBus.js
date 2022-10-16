@@ -4,7 +4,6 @@
 function jsExternalBus() {
 	this.extPlayers = {};
 	this.busVolume = 1.0;
-	this.busMuted = false;
 	this.muted = false;
 }
 
@@ -47,6 +46,26 @@ jsExternalBus.prototype.changeVolume = function (volume) {
 		player.changeVolume(volume);
 	});
 }
+
+/**
+ * On focus in, resumes all the players
+ */
+jsExternalBus.prototype.onFocusIn = function () {
+	Object.values(this.extPlayers).forEach((player) => {
+		player.resumeReload(this.busVolume, this.muted);
+	});
+}
+
+/**
+ * On focus out, pauses all the players
+ */
+jsExternalBus.prototype.onFocusOut = function () {
+	Object.values(this.extPlayers).forEach((player) => {
+		player.pause();
+	})
+}
+
+
 
 /**
  * Get the current bus volume
