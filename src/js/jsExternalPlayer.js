@@ -15,7 +15,65 @@ function jsExternalPlayer(name) {
 	this.name = name;
 	this.volume = 1.0;
 	this.howlPlayer = undefined;
+	this.__info = {
+		buffer: undefined,
+		format: undefined,
+		loop: undefined,
+		callback: undefined,
+		paused: undefined
+	};
 }
+
+/**
+ * Pauses the current player
+ */
+jsExternalPlayer.prototype.pause = function () {
+	if (this.howlPlayer !== undefined) {
+		this.howlPlayer.pause();
+	}
+}
+
+
+/**
+ * Resumes the current player
+ */
+jsExternalPlayer.prototype.resume = function () {
+	if (this.howlPlayer !== undefined) {
+		this.howlPlayer.play();
+	}
+}
+
+/**
+ * Get if the current player is paused, will return false if not playing
+ * @returns {Boolean} Current pause state
+ */
+jsExternalPlayer.prototype.isPaused = function () {
+	if (this.howlPlayer !== undefined) {
+		return this.__info.paused;
+	}
+	return false;
+}
+
+/**
+ * Change the mute state for the current howl if exist
+ * @param {Boolean} muted Mute state
+ */
+jsExternalPlayer.prototype.mute = function (muted) {
+	if (this.howlPlayer !== undefined) {
+		this.howlPlayer.mute(muted);
+	}
+}
+
+/**
+ * Changes a playing howler volume
+ * @param {Number} volume Bus volume
+ */
+jsExternalPlayer.prototype.changeVolume = function (volume) {
+	if(this.howlPlayer !== undefined){
+		this.howlPlayer.volume(this.volume * volume);
+	}
+}
+
 
 /**
  * @param {Number} busVolume The holder bus volume
@@ -25,34 +83,68 @@ function jsExternalPlayer(name) {
  * @param {Boolean} looping 
  * @param {Function} callback 
  */
-jsExternalPlayer.prototype.play = function (busVolume, format, buffer, volume, looping = false, callback = undefined) {
+jsExternalPlayer.prototype.play = function (
+	busVolume, muted, format, buffer, volume,
+	looping = false, callback = undefined) {
 	if (this.howlPlayer !== undefined) {
+		if (this.__info.callback !== undefined) { this.__info.callback(this.name); }
 		this.howlPlayer.unload();
 	}
-
+	this._resetPlayerInfo();
 	this.volume = volume;
-	console.log(busVolume);
+	this.__info.buffer = buffer;
+	this.__info.format = format;
+	this.__info.loop = looping;
+	this.__info.callback = callback;
 
 	this.howlPlayer = new Howl({
 		src: [PREFIXHEADER + format + SUFIXHEADER + buffer],
 		format: [format],
 		volume: this.volume * busVolume,
 		loop: looping,
+		mute: muted,
 		onplayerror: function () {
 			this.howlPlayer.once("unlock", function () {
 				this.howlPlayer.play();
 			})
 		},
 		onend: () => {
-			if (callback !== undefined) { callback(this.name); }
+			if (this.__info.callback !== undefined) { this.__info.callback(this.name); }
+			if (this.howlPlayer.loop) { return; }
 			this.howlPlayer.unload();
-			this.howlPlayer = undefined;
+			this._resetPlayerInfo();
 		},
 		onload: () => {
+			console.log("[ExternalAudioJS] :: " + this.name + " has finished loading and is ready to play");
 			this.howlPlayer.play();
 		},
 		onloaderror: (id, err) => {
-			console.log('failed to load sound file:', { id, err });
+			console.log('[ExternalAudioJS] :: Failed to load sound file: ', { id, err });
+		},
+		onunlock: () => {
+			console.log("[ExternalAudioJS] :: " + this.name + " is unlock and ready to play");
+		},
+		onpause: () => {
+			console.log("[ExternalAudioJS] :: " + this.name + " is Paused");
+			this.__info.paused = true;
+		},
+		onplay: () => {
+			console.log("[ExternalAudioJS] :: " + this.name + " is Playing");
+			this.__info.paused = false;
 		}
 	});
+}
+
+/**
+ * Internals, reset the howler information
+ */
+jsExternalPlayer.prototype._resetPlayerInfo = function () {
+	this.howlPlayer = undefined;
+
+	this.volume = 1.0;
+	this.__info.buffer = undefined;
+	this.__info.format = undefined;
+	this.__info.loop = undefined;
+	this.__info.callback = undefined;
+	this.__info.paused = undefined;
 }

@@ -24,7 +24,8 @@ var IexternalAudio = null;
 #*
 # Holds reference to a generic callback function
 #*
-var externalAudioCallback = null;
+var externalAudioCallback : JavaScriptObject = null
+
 
 
 # - - - - - - - - - -
@@ -53,21 +54,87 @@ func addPlayer (busName : String, playerName : String):
 	if(!has_user_signal(playerName)):
 		add_user_signal(playerName)
 
+#*
+# Pauses a player by name
+# @param {String} playerName Target player name
+#*
+func pausePlayer(playerName : String):
+	if(!IexternalAudio): return;
+	IexternalAudio.pausePlayer(playerName);
 
 #*
-# 
+# Resumes a player by name
+# @param {String} playerName Target player name
 #*
-func playAudio(playerName : String, audioResource : AudioStream, volume = 1.0):
+func resumePlayer(playerName : String):
 	if(!IexternalAudio): return;
+	IexternalAudio.resumePlayer(playerName);
+
+#*
+# Get if a player is paused
+# Will return false if not found
+#*
+func isPlayerPaused(playerName : String):
+	if(!IexternalAudio): return false;
+	return IexternalAudio.isPlayerPaused(playerName);
+
+
+#*
+# Plays a audioStrean on player, by name, with a volume
+#*
+func playAudio(playerName : String, audioResource : AudioStream, volume = 1.0, loop = false):
+	if(!IexternalAudio || !has_user_signal(playerName)): 
+		print("[ExternalAudio] :: Invalid playerName on undefined ExternalAudioJs, aborting play request");
+		
 	if(audioResource.has_method("get_data")):
+		print("[ExternalAudio] :: Playing %s" % audioResource.get_path().get_file().get_basename());
 		IexternalAudio.playOnPlayer(playerName,
 			audioResource.get_path().get_extension(),
 			Marshalls.raw_to_base64(audioResource.get_data()),
-			volume
+			volume, loop, externalAudioCallback
 		);
 
+		yield(self, playerName);
+		print("[ExternalAudio] :: %s played %s" % [playerName, audioResource.get_path().get_file().get_basename()]);
 
 
+#*
+# Changes the mute state for a target bus
+# @params {String} busName Target bus name
+# @param {bool} muted Mute state
+#*
+func muteBus(busName : String, muted : bool):
+	if(!IexternalAudio): return;
+	IexternalAudio.muteBus(busName, muted);
+
+#*
+# Get if a target bus is muted
+# Will return false if bus not found
+# @param {String} Target bus name
+# @returns Target bus mute state
+#*
+func isBusMuted(busName : String) -> bool:
+	if(!IexternalAudio): return false;
+	return IexternalAudio.isBusMuted(busName);
+
+
+#*
+# Set the bus volume by name
+# @param {String} busName Target bus name
+# @param {float} volume new volume value
+#*
+func changeBusVolume(busName : String, volume : float):
+	if(!IexternalAudio): return;
+	IexternalAudio.changeBusVolume(busName, volume);
+
+
+#*
+# Get a bus volume by name, if not found will return 0.0
+# @return {float} Current bus volume
+#*
+func getBusVolume(busName : String)-> float:
+	if(!IexternalAudio): return 0.0;
+	return IexternalAudio.getBusVolume(busName);
 
 # - - - - - - - - - -
 # PRIVATE
@@ -92,13 +159,12 @@ func _enter_tree():
 
 
 	IexternalAudio = JavaScript.get_interface("externalAudio");
-	externalAudioCallback = JavaScript.create_callback(self, "__onend_callback__");
-
+	externalAudioCallback = JavaScript.create_callback(self, "onEndCallback");
 
 #*
 # Callback function informing when a defined player ended
-# @param {String} playerName Ended player name
+# @param {Array} playerName Ended player name
 #*
-func __onend_callback__(playerName : String):
-	if(has_user_signal(playerName)):
-		emit_signal( playerName);
+func onEndCallback(args):
+	if(has_user_signal(args[0])):
+		emit_signal(args[0]);
